@@ -1,69 +1,101 @@
 import React, { useState, useEffect, useRef } from "react";
 
 const AStarPage = () => {
-  const [adjInput, setAdjInput] = useState('{"A":{"B":4,"C":2},"B":{"A":4,"C":1,"D":5},"C":{"A":2,"B":1,"D":8},"D":{"B":5,"C":8}}');
-  const [heuristicInput, setHeuristicInput] = useState('{"A":7,"B":6,"C":2,"D":0}');
+  /* ================= GRAPH INPUT ================= */
+  const [nodes, setNodes] = useState([
+    { node: "A", neighbors: "B:4,C:2", h: 7 },
+    { node: "B", neighbors: "A:4,C:1,D:5", h: 6 },
+    { node: "C", neighbors: "A:2,B:1,D:8", h: 2 },
+    { node: "D", neighbors: "B:5,C:8", h: 0 },
+  ]);
+
   const [start, setStart] = useState("A");
   const [end, setEnd] = useState("D");
+
+  /* ================= A* STATE ================= */
   const [steps, setSteps] = useState([]);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [explanation, setExplanation] = useState("");
   const [error, setError] = useState("");
 
   const timerRef = useRef(null);
 
+  /* ================= BUILD ADJ + HEURISTIC ================= */
+  const buildAdjAndHeuristic = () => {
+    const adj = {};
+    const heuristic = {};
+
+    for (let item of nodes) {
+      const u = item.node.trim();
+      if (!u) continue;
+
+      heuristic[u] = Number(item.h) || 0;
+      adj[u] = {};
+
+      item.neighbors
+        .split(",")
+        .map(x => x.trim())
+        .filter(Boolean)
+        .forEach(pair => {
+          const [v, w] = pair.split(":");
+          if (v && !isNaN(Number(w))) {
+            adj[u][v.trim()] = Number(w);
+          }
+        });
+    }
+
+    return { adj, heuristic };
+  };
+
+  /* ================= FETCH A* ================= */
   const fetchAStarSteps = async (adj, start, end, heuristic) => {
-    const res = await fetch("http://localhost:3000/shortestpathrouter/astaralgo", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ adj, start, end, heuristic }),
-    });
+    const res = await fetch(
+      "http://localhost:3000/shortestpathrouter/astaralgo",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adj, start, end, heuristic }),
+      }
+    );
 
     const data = await res.json();
     return data.arr;
   };
 
+  /* ================= PLAY ================= */
   const handlePlay = async () => {
     if (isPlaying) return;
 
-    if (steps.length === 0) {
-      try {
-        const adj = JSON.parse(adjInput);
-        const heuristic = JSON.parse(heuristicInput);
-        
-        if (!adj || typeof adj !== 'object') {
-          setError('Invalid graph! Please enter valid JSON format');
-          return;
-        }
-        if (!heuristic || typeof heuristic !== 'object') {
-          setError('Invalid heuristic! Please enter valid JSON format');
-          return;
-        }
-        if (!adj[start]) {
-          setError(`Start node "${start}" not found in graph!`);
-          return;
-        }
-        if (!adj[end]) {
-          setError(`End node "${end}" not found in graph!`);
-          return;
-        }
-        
-        setError("");
-        setCurrentStepIndex(0);
-        setExplanation("Starting A* Algorithm...");
+    try {
+      const { adj, heuristic } = buildAdjAndHeuristic();
 
-        const backendSteps = await fetchAStarSteps(adj, start, end, heuristic);
-        setSteps(backendSteps);
-      } catch (e) {
-        setError('Invalid JSON format! Example: {"A":{"B":4,"C":2},"B":{"A":4,"D":5}}');
+      if (!adj[start] || !adj[end]) {
+        setError("Start or end node does not exist.");
         return;
       }
-    }
 
-    setIsPlaying(true);
+      for (let u in adj) {
+        for (let v in adj[u]) {
+          if (!adj[v]) {
+            setError(`Neighbor "${v}" is not defined as a node.`);
+            return;
+          }
+        }
+      }
+
+      setError("");
+      setSteps([]);
+      setCurrentStepIndex(0);
+
+      const astarSteps = await fetchAStarSteps(adj, start, end, heuristic);
+      setSteps(astarSteps);
+      setIsPlaying(true);
+    } catch {
+      setError("Invalid graph input.");
+    }
   };
 
+  /* ================= PAUSE / REPLAY ================= */
   const handlePause = () => {
     setIsPlaying(false);
     clearTimeout(timerRef.current);
@@ -74,31 +106,44 @@ const AStarPage = () => {
     setIsPlaying(false);
     setSteps([]);
     setCurrentStepIndex(0);
-    setExplanation("");
-    setError("");
   };
 
+  /* ================= ANIMATION ================= */
   useEffect(() => {
     if (!isPlaying || currentStepIndex >= steps.length) return;
 
     timerRef.current = setTimeout(() => {
-      const step = steps[currentStepIndex];
-      setExplanation(generateExplanation(step));
-      setCurrentStepIndex((prev) => prev + 1);
-    }, 2000);
+      setCurrentStepIndex(i => i + 1);
+    }, 1800);
 
     return () => clearTimeout(timerRef.current);
   }, [isPlaying, currentStepIndex, steps]);
 
-  const currentStep = steps[currentStepIndex - 1] || {};
+  const step = steps[currentStepIndex - 1] || {};
 
-  const generateExplanation = (step) => {
-    if (step.found) {
-      return `Found shortest path to ${step.currentNode} using A*! f-scores: ${JSON.stringify(step.fScore)}`;
-    }
+  /* ================= GRAPH LAYOUT ================= */
+  const { adj } = buildAdjAndHeuristic();
+  const nodeKeys = Object.keys(adj);
 
-    return `Visiting ${step.currentNode}, exploring neighbors: [${step.neighbors?.join(", ")}]. f(n) = g(n) + h(n)`;
-  };
+  const radius = 170;
+  const cx = 280;
+  const cy = 240;
+
+  const positions = {};
+  nodeKeys.forEach((node, i) => {
+    const angle = (2 * Math.PI * i) / nodeKeys.length;
+    positions[node] = {
+      x: cx + radius * Math.cos(angle),
+      y: cy + radius * Math.sin(angle),
+    };
+  });
+
+  /* ================= EXPLANATION ================= */
+  const explanation = step.found
+    ? `Target "${end}" reached using A* algorithm`
+    : step.currentNode
+    ? `Visiting ${step.currentNode}, evaluating neighbors`
+    : "Click Play to start";
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
@@ -106,116 +151,176 @@ const AStarPage = () => {
         A* Algorithm Visualization
       </h1>
 
+      {/* ================= INPUT ================= */}
       <div className="max-w-4xl mx-auto bg-gray-800 p-6 rounded mb-6">
-        <h2 className="text-xl font-semibold mb-2">About A* Algorithm</h2>
-        <p className="text-gray-300 text-sm">
-          A* is an informed search algorithm that uses heuristics to find the shortest path more efficiently than Dijkstra's.
-        </p>
-        <p className="text-gray-400 text-sm mt-2">
-          ⏱ O((V + E) log V) Time | 🧠 O(V) Space
-        </p>
+        <h2 className="text-xl font-semibold mb-4">
+          Graph Input (Adjacency List + Heuristic)
+        </h2>
+
+        {nodes.map((item, idx) => (
+          <div key={idx} className="flex gap-3 mb-2 items-center">
+            <input
+              value={item.node}
+              disabled={isPlaying}
+              onChange={e => {
+                const copy = [...nodes];
+                copy[idx].node = e.target.value;
+                setNodes(copy);
+              }}
+              placeholder="Node"
+              className="px-3 py-2 bg-gray-700 rounded w-20"
+            />
+
+            <input
+              value={item.neighbors}
+              disabled={isPlaying}
+              onChange={e => {
+                const copy = [...nodes];
+                copy[idx].neighbors = e.target.value;
+                setNodes(copy);
+              }}
+              placeholder="B:4,C:2"
+              className="px-3 py-2 bg-gray-700 rounded flex-1"
+            />
+
+            <input
+              type="number"
+              value={item.h}
+              disabled={isPlaying}
+              onChange={e => {
+                const copy = [...nodes];
+                copy[idx].h = e.target.value;
+                setNodes(copy);
+              }}
+              placeholder="h"
+              className="px-3 py-2 bg-gray-700 rounded w-20"
+            />
+
+            <button
+              disabled={isPlaying}
+              onClick={() => {
+                const nodeToDelete = nodes[idx].node;
+                let updated = nodes.filter((_, i) => i !== idx);
+                updated = updated.map(item => ({
+                  ...item,
+                  neighbors: item.neighbors
+                    .split(",")
+                    .filter(x => !x.startsWith(nodeToDelete + ":"))
+                    .join(","),
+                }));
+                setNodes(updated);
+              }}
+              className="px-3 py-2 bg-red-600 rounded"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+
+        <button
+          onClick={() =>
+            setNodes([...nodes, { node: "", neighbors: "", h: 0 }])
+          }
+          className="mt-3 px-4 py-2 bg-blue-600 rounded"
+        >
+          + Add Node
+        </button>
       </div>
 
-      <div className="flex justify-center gap-4 mb-6 flex-wrap items-start">
-        <div className="flex flex-col gap-2">
-          <label className="text-sm text-gray-400">Demo: {'{"A":{"B":4,"C":2},"B":{"A":4,"D":5}}'}</label>
-          <input
-            value={adjInput}
-            onChange={(e) => setAdjInput(e.target.value)}
-            disabled={isPlaying}
-            placeholder='Graph adjacency list'
-            className="px-4 py-2 rounded bg-gray-800 border border-gray-600 w-96"
-          />
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-        </div>
+      {/* ================= START / END ================= */}
+      <div className="flex justify-center gap-4 mb-6">
+        <input
+          value={start}
+          onChange={e => setStart(e.target.value)}
+          placeholder="Start"
+          className="px-4 py-2 bg-gray-800 rounded w-24"
+        />
+        <input
+          value={end}
+          onChange={e => setEnd(e.target.value)}
+          placeholder="End"
+          className="px-4 py-2 bg-gray-800 rounded w-24"
+        />
+      </div>
 
-        <div className="flex flex-col gap-2">
-          <label className="text-sm text-gray-400">Demo: {'{"A":7,"B":6,"C":2,"D":0}'}</label>
-          <input
-            value={heuristicInput}
-            onChange={(e) => setHeuristicInput(e.target.value)}
-            disabled={isPlaying}
-            placeholder='Heuristic values'
-            className="px-4 py-2 rounded bg-gray-800 border border-gray-600 w-64"
-          />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <label className="text-sm text-gray-400">Start Node</label>
-          <input
-            value={start}
-            onChange={(e) => setStart(e.target.value)}
-            disabled={isPlaying}
-            placeholder="Start"
-            className="px-4 py-2 rounded bg-gray-800 border border-gray-600 w-24"
-          />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <label className="text-sm text-gray-400">End Node</label>
-          <input
-            value={end}
-            onChange={(e) => setEnd(e.target.value)}
-            disabled={isPlaying}
-            placeholder="End"
-            className="px-4 py-2 rounded bg-gray-800 border border-gray-600 w-24"
-          />
-        </div>
-
-        <button onClick={handlePlay} disabled={isPlaying} className="bg-green-600 px-6 py-2 rounded hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed">
+      {/* ================= CONTROLS ================= */}
+      <div className="flex justify-center gap-4 mb-6">
+        <button onClick={handlePlay} className="bg-green-600 px-6 py-2 rounded">
           ▶ Play
         </button>
-
-        <button onClick={handlePause} disabled={!isPlaying} className="bg-yellow-500 px-6 py-2 rounded hover:bg-yellow-600 disabled:bg-gray-600 disabled:cursor-not-allowed">
+        <button onClick={handlePause} className="bg-yellow-500 px-6 py-2 rounded">
           ⏸ Pause
         </button>
-
-        <button onClick={handleReplay} disabled={isPlaying} className="bg-red-600 px-6 py-2 rounded hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed">
+        <button onClick={handleReplay} className="bg-red-600 px-6 py-2 rounded">
           🔁 Replay
         </button>
       </div>
 
+      {error && <p className="text-center text-red-400 mb-4">{error}</p>}
+
+      {/* ================= EXPLANATION ================= */}
       <div className="max-w-4xl mx-auto bg-gray-800 p-4 rounded mb-6 text-center">
-        <p className="text-lg text-blue-300 font-medium">
-          {explanation || "Click Play to start the visualization"}
-        </p>
+        <p className="text-blue-300 font-medium">{explanation}</p>
       </div>
 
-      <div className="max-w-5xl mx-auto bg-gray-800 p-8 rounded">
-        <h3 className="text-xl font-semibold mb-4 text-center">f-scores (g + h):</h3>
-        <div className="grid grid-cols-4 gap-4">
-          {currentStep.fScore && Object.keys(currentStep.fScore).map((node, idx) => {
-            let bgColor = "bg-blue-500";
-            let scale = "scale-100";
-            let shadow = "";
+      {/* ================= GRAPH ================= */}
+      <div className="flex justify-center mb-6">
+        <svg width="560" height="480" className="bg-gray-800 rounded">
+          {/* Edges */}
+          {nodeKeys.map(u =>
+            Object.entries(adj[u]).map(([v, w], i) =>
+              positions[u] && positions[v] ? (
+                <g key={`${u}-${v}-${i}`}>
+                  <line
+                    x1={positions[u].x}
+                    y1={positions[u].y}
+                    x2={positions[v].x}
+                    y2={positions[v].y}
+                    stroke="#555"
+                  />
+                  <text
+                    x={(positions[u].x + positions[v].x) / 2}
+                    y={(positions[u].y + positions[v].y) / 2}
+                    fill="#ccc"
+                    fontSize="12"
+                  >
+                    {w}
+                  </text>
+                </g>
+              ) : null
+            )
+          )}
 
-            if (currentStep.currentNode === node && currentStep.found) {
-              bgColor = "bg-green-500";
-              scale = "scale-110";
-              shadow = "shadow-xl shadow-green-500/50";
-            } else if (currentStep.currentNode === node) {
-              bgColor = "bg-yellow-400";
-              scale = "scale-125";
-              shadow = "shadow-2xl shadow-yellow-400/80";
-            } else if (currentStep.visited && currentStep.visited.includes(node)) {
-              bgColor = "bg-purple-500";
-              scale = "scale-105";
-              shadow = "shadow-lg shadow-purple-500/50";
-            }
+          {/* Nodes */}
+          {nodeKeys.map(node => {
+            let color = "#3b82f6";
+
+            if (step.visited && step.visited.includes(node))
+              color = "#22c55e";
+            if (step.currentNode === node) color = "#facc15";
+            if (step.found && node === end) color = "#ef4444";
 
             return (
-              <div key={idx} className={`p-4 rounded ${bgColor} text-black text-center transition-all duration-500 ${scale} ${shadow}`}>
-                <div className="font-bold text-lg">{node}</div>
-                <div className="text-sm">
-                  f: {currentStep.fScore[node] === Infinity ? "∞" : currentStep.fScore[node].toFixed(1)}
-                </div>
-                <div className="text-xs">
-                  g: {currentStep.gScore[node] === Infinity ? "∞" : currentStep.gScore[node].toFixed(1)}
-                </div>
-              </div>
+              <g key={node}>
+                <circle
+                  cx={positions[node].x}
+                  cy={positions[node].y}
+                  r="20"
+                  fill={color}
+                />
+                <text
+                  x={positions[node].x}
+                  y={positions[node].y + 5}
+                  textAnchor="middle"
+                  fill="black"
+                  fontWeight="bold"
+                >
+                  {node}
+                </text>
+              </g>
             );
           })}
-        </div>
+        </svg>
       </div>
     </div>
   );

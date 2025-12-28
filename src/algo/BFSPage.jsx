@@ -1,23 +1,53 @@
 import React, { useState, useEffect, useRef } from "react";
 
 const BFSPage = () => {
-  const [adjListInput, setAdjListInput] = useState('{"0":["1","2"],"1":["0","3","4"],"2":["0","5"],"3":["1"],"4":["1"],"5":["2"]}');
+  const [nodes, setNodes] = useState([
+    { node: "0", neighbors: "1,2" },
+    { node: "1", neighbors: "0,3,4" },
+    { node: "2", neighbors: "0,5" },
+    { node: "3", neighbors: "1" },
+    { node: "4", neighbors: "1" },
+    { node: "5", neighbors: "2" },
+  ]);
+
   const [root, setRoot] = useState("0");
   const [target, setTarget] = useState("5");
+
   const [steps, setSteps] = useState([]);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [explanation, setExplanation] = useState("");
+  const [visited, setVisited] = useState(new Set());
   const [error, setError] = useState("");
 
   const timerRef = useRef(null);
 
+  const buildAdjList = () => {
+    const adj = {};
+    for (let item of nodes) {
+      const node = item.node.trim();
+      if (!node) continue;
+
+      adj[node] = item.neighbors
+        .split(",")
+        .map((n) => n.trim())
+        .filter(Boolean);
+    }
+    return adj;
+  };
+
   const fetchBFSSteps = async (adjList, root, target) => {
-    const res = await fetch("http://localhost:3000/graphalgo/bfs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ adjList, root, num: target }),
-    });
+    const res = await fetch(
+      "http://localhost:3000/graphalgo/breadthfirstsearch",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          adjList,
+          root,
+          num: target,
+        }),
+      }
+    );
 
     const data = await res.json();
     return data.arr;
@@ -26,30 +56,33 @@ const BFSPage = () => {
   const handlePlay = async () => {
     if (isPlaying) return;
 
-    if (steps.length === 0) {
-      try {
-        const adjList = JSON.parse(adjListInput);
-        if (!adjList || typeof adjList !== 'object') {
-          setError('Invalid adjacency list! Please enter valid JSON format');
-          return;
-        }
-        if (!adjList[root]) {
-          setError(`Root node "${root}" not found in adjacency list!`);
-          return;
-        }
-        setError("");
-        setCurrentStepIndex(0);
-        setExplanation("Starting BFS Traversal...");
+    try {
+      const adjList = buildAdjList();
 
-        const backendSteps = await fetchBFSSteps(adjList, root, target);
-        setSteps(backendSteps);
-      } catch (e) {
-        setError('Invalid JSON format! Example: {"0":["1","2"],"1":["0","3"],"2":["0"],"3":["1"]}');
+      if (!adjList[root]) {
+        setError(`Root node "${root}" does not exist.`);
         return;
       }
-    }
 
-    setIsPlaying(true);
+      for (let u in adjList) {
+        for (let v of adjList[u]) {
+          if (!adjList[v]) {
+            setError(`Neighbor "${v}" is not defined as a node.`);
+            return;
+          }
+        }
+      }
+
+      setError("");
+      setVisited(new Set());
+      setCurrentStepIndex(0);
+
+      const bfsSteps = await fetchBFSSteps(adjList, root, target);
+      setSteps(bfsSteps);
+      setIsPlaying(true);
+    } catch {
+      setError("Invalid graph input.");
+    }
   };
 
   const handlePause = () => {
@@ -61,9 +94,8 @@ const BFSPage = () => {
     clearTimeout(timerRef.current);
     setIsPlaying(false);
     setSteps([]);
+    setVisited(new Set());
     setCurrentStepIndex(0);
-    setExplanation("");
-    setError("");
   };
 
   useEffect(() => {
@@ -71,125 +103,199 @@ const BFSPage = () => {
 
     timerRef.current = setTimeout(() => {
       const step = steps[currentStepIndex];
-      setExplanation(generateExplanation(step));
-      setCurrentStepIndex((prev) => prev + 1);
-    }, 1500);
+      setVisited((prev) => new Set(prev).add(step.num));
+      setCurrentStepIndex((i) => i + 1);
+    }, 1800);
 
     return () => clearTimeout(timerRef.current);
   }, [isPlaying, currentStepIndex, steps]);
 
-  const currentStep = steps[currentStepIndex - 1] || {};
+  const step = steps[currentStepIndex - 1] || {};
+  const { num: currentNode, queue = [], found = false } = step;
 
-  const generateExplanation = (step) => {
-    if (step.found) {
-      return `Found target node ${step.num}!`;
-    }
+  const adjList = buildAdjList();
+  const nodeKeys = Object.keys(adjList);
 
-    return `Visiting node ${step.num}, exploring neighbors: [${step.neighbours.join(", ")}]. Queue: [${step.queue.join(", ")}]`;
-  };
+  const radius = 160;
+  const cx = 260;
+  const cy = 220;
+
+  const positions = {};
+  nodeKeys.forEach((node, i) => {
+    const angle = (2 * Math.PI * i) / nodeKeys.length;
+    positions[node] = {
+      x: cx + radius * Math.cos(angle),
+      y: cy + radius * Math.sin(angle),
+    };
+  });
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       <h1 className="text-3xl font-bold text-center mb-6">
-        Breadth-First Search (BFS) Visualization
+        Breadth First Search (BFS)
       </h1>
 
       <div className="max-w-4xl mx-auto bg-gray-800 p-6 rounded mb-6">
-        <h2 className="text-xl font-semibold mb-2">About BFS</h2>
-        <p className="text-gray-300 text-sm">
-          BFS explores a graph level by level, starting from the root node and visiting all neighbors before moving to the next level.
-        </p>
-        <p className="text-gray-400 text-sm mt-2">
-          ⏱ O(V + E) Time | 🧠 O(V) Space
-        </p>
+        <h2 className="text-xl font-semibold mb-4">
+          Graph Input (Adjacency List)
+        </h2>
+
+        {nodes.map((item, idx) => (
+          <div key={idx} className="flex gap-3 mb-2 items-center">
+            <input
+              value={item.node}
+              disabled={isPlaying}
+              onChange={(e) => {
+                const copy = [...nodes];
+                copy[idx].node = e.target.value;
+                setNodes(copy);
+              }}
+              placeholder="Node"
+              className="px-3 py-2 bg-gray-700 rounded w-24"
+            />
+
+            <input
+              value={item.neighbors}
+              disabled={isPlaying}
+              onChange={(e) => {
+                const copy = [...nodes];
+                copy[idx].neighbors = e.target.value;
+                setNodes(copy);
+              }}
+              placeholder="Neighbors (comma separated)"
+              className="px-3 py-2 bg-gray-700 rounded flex-1"
+            />
+
+            <button
+              disabled={isPlaying}
+              onClick={() => {
+                const nodeToDelete = nodes[idx].node;
+
+                let updated = nodes.filter((_, i) => i !== idx);
+
+                updated = updated.map((item) => ({
+                  ...item,
+                  neighbors: item.neighbors
+                    .split(",")
+                    .map((n) => n.trim())
+                    .filter((n) => n && n !== nodeToDelete)
+                    .join(","),
+                }));
+
+                setNodes(updated);
+              }}
+              className="px-3 py-2 bg-red-600 rounded"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+
+        <button
+          onClick={() =>
+            setNodes([...nodes, { node: "", neighbors: "" }])
+          }
+          className="mt-3 px-4 py-2 bg-blue-600 rounded"
+        >
+          + Add Node
+        </button>
       </div>
 
-      <div className="flex justify-center gap-4 mb-6 flex-wrap items-start">
-        <div className="flex flex-col gap-2">
-          <label className="text-sm text-gray-400">Demo Graph: {'{"0":["1","2"],"1":["0","3","4"],"2":["0","5"],"3":["1"],"4":["1"],"5":["2"]}'} | Root: 0 | Target: 5</label>
-          <div className="flex gap-2 flex-wrap">
-            <input
-              value={adjListInput}
-              onChange={(e) => setAdjListInput(e.target.value)}
-              disabled={isPlaying}
-              placeholder='{"0":["1","2"]}'
-              className="px-4 py-2 rounded bg-gray-800 border border-gray-600 w-96"
-            />
-            <input
-              value={root}
-              onChange={(e) => setRoot(e.target.value)}
-              disabled={isPlaying}
-              placeholder="Root node"
-              className="px-4 py-2 rounded bg-gray-800 border border-gray-600 w-24"
-            />
-            <input
-              value={target}
-              onChange={(e) => setTarget(e.target.value)}
-              disabled={isPlaying}
-              placeholder="Target"
-              className="px-4 py-2 rounded bg-gray-800 border border-gray-600 w-24"
-            />
-          </div>
-          {error && <p className="text-red-500 text-sm max-w-2xl">{error}</p>}
-        </div>
-        
-        <button onClick={handlePlay} disabled={isPlaying} className="bg-green-600 px-6 py-2 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed mt-6">
+      <div className="flex justify-center gap-4 mb-6">
+        <input
+          value={root}
+          onChange={(e) => setRoot(e.target.value)}
+          placeholder="Root"
+          className="px-4 py-2 bg-gray-800 rounded w-24"
+        />
+        <input
+          value={target}
+          onChange={(e) => setTarget(e.target.value)}
+          placeholder="Target"
+          className="px-4 py-2 bg-gray-800 rounded w-24"
+        />
+      </div>
+
+      <div className="flex justify-center gap-4 mb-6">
+        <button onClick={handlePlay} className="bg-green-600 px-6 py-2 rounded">
           ▶ Play
         </button>
-        <button onClick={handlePause} disabled={!isPlaying} className="bg-yellow-500 px-6 py-2 rounded hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed mt-6">
+        <button onClick={handlePause} className="bg-yellow-500 px-6 py-2 rounded">
           ⏸ Pause
         </button>
-        <button onClick={handleReplay} className="bg-red-600 px-6 py-2 rounded hover:bg-red-700 mt-6">
+        <button onClick={handleReplay} className="bg-red-600 px-6 py-2 rounded">
           🔁 Replay
         </button>
       </div>
 
-      <div className="max-w-4xl mx-auto bg-gray-800 p-4 rounded mb-6 text-center">
-        <p className="text-lg text-blue-300 font-medium">
-          {explanation || "Click Play to start the visualization"}
-        </p>
+      {error && (
+        <p className="text-center text-red-400 mb-4">{error}</p>
+      )}
+
+      <div className="flex justify-center mb-6">
+        <svg width="520" height="440" className="bg-gray-800 rounded">
+          {nodeKeys.map((u) =>
+            adjList[u].map((v, i) => {
+              if (!positions[u] || !positions[v]) return null;
+
+              return (
+                <line
+                  key={`${u}-${v}-${i}`}
+                  x1={positions[u].x}
+                  y1={positions[u].y}
+                  x2={positions[v].x}
+                  y2={positions[v].y}
+                  stroke="#555"
+                />
+              );
+            })
+          )}
+
+          {nodeKeys.map((node) => {
+            let color = "#3b82f6";
+
+            if (visited.has(node)) color = "#22c55e";
+            if (node === currentNode) color = "#facc15";
+            if (found && node === target) color = "#ef4444";
+
+            return (
+              <g key={node}>
+                <circle
+                  cx={positions[node].x}
+                  cy={positions[node].y}
+                  r="18"
+                  fill={color}
+                />
+                <text
+                  x={positions[node].x}
+                  y={positions[node].y + 5}
+                  textAnchor="middle"
+                  fill="black"
+                  fontWeight="bold"
+                >
+                  {node}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
       </div>
 
-      <div className="max-w-5xl mx-auto bg-gray-800 p-8 rounded">
-        <div className="grid grid-cols-6 gap-4">
-          {steps.length > 0 && (
-            <>
-              {Object.keys(JSON.parse(adjListInput)).map((node, idx) => {
-                let bgColor = "bg-blue-500";
-                let scale = "scale-100";
-                let shadow = "";
+      <div className="max-w-4xl mx-auto bg-gray-800 p-6 rounded">
+        <p>
+          <strong>Current Node:</strong>{" "}
+          <span className="text-yellow-400">{currentNode || "-"}</span>
+        </p>
+        <p>
+          <strong>Queue:</strong>{" "}
+          {queue.length ? queue.join(" → ") : "Empty"}
+        </p>
 
-                if (currentStep.num === node && currentStep.found) {
-                  bgColor = "bg-green-500";
-                  scale = "scale-125";
-                  shadow = "shadow-2xl shadow-green-500/80";
-                } else if (currentStep.num === node) {
-                  bgColor = "bg-yellow-400";
-                  scale = "scale-125";
-                  shadow = "shadow-2xl shadow-yellow-400/80";
-                } else if (currentStep.queue && currentStep.queue.includes(node)) {
-                  bgColor = "bg-purple-500";
-                  scale = "scale-110";
-                  shadow = "shadow-lg shadow-purple-500/50";
-                }
-
-                return (
-                  <div
-                    key={idx}
-                    className={`
-                      w-16 h-16 flex items-center justify-center
-                      text-xl font-bold text-black rounded-full
-                      transition-all duration-500
-                      ${bgColor} ${scale} ${shadow}
-                    `}
-                  >
-                    {node}
-                  </div>
-                );
-              })}
-            </>
-          )}
-        </div>
+        {found && (
+          <p className="text-green-400 font-semibold mt-2">
+            🎯 Target node found!
+          </p>
+        )}
       </div>
     </div>
   );
