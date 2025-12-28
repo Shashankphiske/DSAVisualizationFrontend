@@ -8,6 +8,7 @@ const MergeSortPage = () => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [explanation, setExplanation] = useState("");
+  const [error, setError] = useState("");
 
   const timerRef = useRef(null);
 
@@ -29,6 +30,11 @@ const MergeSortPage = () => {
 
     if (steps.length === 0) {
       const parsed = input.split(",").map(Number).filter(n => !isNaN(n));
+      if (parsed.length === 0) {
+        setError("Invalid input! Please enter comma-separated numbers (e.g., 5,3,8,4,2)");
+        return;
+      }
+      setError("");
       setArray(parsed);
       setCurrentStepIndex(0);
       setExplanation("Starting Merge Sort. Dividing the array into smaller subarrays.");
@@ -54,6 +60,7 @@ const MergeSortPage = () => {
     setArray([]);
     setCurrentStepIndex(0);
     setExplanation("");
+    setError("");
   };
 
   // 🧠 Explanation generator
@@ -115,23 +122,30 @@ const MergeSortPage = () => {
         </p>
       </div>
 
-      {/* Input */}
-      <div className="flex justify-center mb-4">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          disabled={isPlaying}
-          className="px-4 py-2 rounded bg-gray-800 border border-gray-600 w-64"
-        />
+      {/* Controls */}
+      <div className="flex justify-center gap-4 mb-6 flex-wrap items-start">
+        <div className="flex flex-col gap-2">
+          <label className="text-sm text-gray-400">Demo: 5,3,8,4,2 or 64,34,25,12,22,11,90</label>
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            disabled={isPlaying}
+            placeholder="e.g., 5,3,8,4,2"
+            className="px-4 py-2 rounded bg-gray-800 border border-gray-600 w-96"
+          />
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+        </div>
+        
+        <button onClick={handlePlay} disabled={isPlaying} className="bg-green-600 px-6 py-2 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed mt-6">
+          ▶ Play
+        </button>
+        <button onClick={handlePause} disabled={!isPlaying} className="bg-yellow-500 px-6 py-2 rounded hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed mt-6">
+          ⏸ Pause
+        </button>
+        <button onClick={handleReplay} className="bg-red-600 px-6 py-2 rounded hover:bg-red-700 mt-6">
+          🔁 Replay
+        </button>
       </div>
-
-      {/* Buttons */}
-      <ControlButtons
-        onPlay={handlePlay}
-        onPause={handlePause}
-        onReplay={handleReplay}
-        disabled={isPlaying}
-      />
 
       {/* Explanation */}
       <div className="max-w-4xl mx-auto bg-gray-800 p-4 rounded mb-6 text-center">
@@ -141,21 +155,44 @@ const MergeSortPage = () => {
       </div>
 
       {/* Visualization */}
-      <div className="flex justify-center items-center gap-4 bg-gray-800 p-8 rounded max-w-6xl mx-auto flex-wrap">
+      <div className="flex justify-center items-end gap-2 bg-gray-800 p-8 rounded max-w-6xl mx-auto" style={{ minHeight: "400px" }}>
         {array.map((value, index) => {
           let bgColor = "bg-blue-500";
+          let scale = "scale-100";
+          let shadow = "";
 
-          if (mergedIndexes.includes(index)) bgColor = "bg-purple-500";
+          if (mergedIndexes.includes(index)) {
+            bgColor = "bg-purple-500";
+            scale = "scale-105";
+            shadow = "shadow-lg shadow-purple-500/50";
+          }
           if (comparing.includes(index)) {
             bgColor = swapped ? "bg-red-500" : "bg-yellow-400";
+            scale = "scale-110";
+            shadow = "shadow-2xl shadow-yellow-400/50";
           }
+
+          const heightPercentage = (value / Math.max(...array)) * 100;
 
           return (
             <div
               key={index}
-              className={`w-16 h-16 flex items-center justify-center text-xl font-bold text-black rounded transition-all duration-500 ${bgColor}`}
+              className={`
+                w-16 flex flex-col items-center justify-end
+                transition-all duration-500 ease-in-out
+                ${scale} ${shadow}
+              `}
+              style={{ height: "350px" }}
             >
-              {value}
+              <div className="text-sm font-bold text-white mb-1">{value}</div>
+              <div
+                className={`
+                  w-full rounded-t-lg
+                  transition-all duration-500 ease-in-out
+                  ${bgColor}
+                `}
+                style={{ height: `${heightPercentage}%` }}
+              />
             </div>
           );
         })}

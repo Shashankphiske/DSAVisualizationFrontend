@@ -6,6 +6,7 @@ const QuickSortPage = () => {
   const [steps, setSteps] = useState([]);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [error, setError] = useState("");
 
   const timerRef = useRef(null);
 
@@ -33,6 +34,11 @@ const QuickSortPage = () => {
         .map((n) => Number(n.trim()))
         .filter((n) => !isNaN(n));
 
+      if (parsedArray.length === 0) {
+        setError("Invalid input! Please enter comma-separated numbers (e.g., 5,3,8,4,2)");
+        return;
+      }
+      setError("");
       setArray(parsedArray);
       setCurrentStepIndex(0);
 
@@ -56,6 +62,7 @@ const QuickSortPage = () => {
     setSteps([]);
     setArray([]);
     setCurrentStepIndex(0);
+    setError("");
   };
 
   // 🎞 Animation engine
@@ -100,63 +107,72 @@ const QuickSortPage = () => {
       </div>
 
       {/* Controls */}
-      <div className="flex justify-center gap-4 mb-8">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          disabled={isPlaying}
-          className="px-4 py-2 rounded bg-gray-800 border border-gray-600 focus:outline-none w-64"
-          placeholder="5,3,8,4,2"
-        />
-
-        <button
-          onClick={handlePlay}
-          className="px-6 py-2 bg-green-600 rounded hover:bg-green-700"
-        >
+      <div className="flex justify-center gap-4 mb-6 flex-wrap items-start">
+        <div className="flex flex-col gap-2">
+          <label className="text-sm text-gray-400">Demo: 5,3,8,4,2 or 64,34,25,12,22,11,90</label>
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            disabled={isPlaying}
+            placeholder="e.g., 5,3,8,4,2"
+            className="px-4 py-2 rounded bg-gray-800 border border-gray-600 w-96"
+          />
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+        </div>
+        
+        <button onClick={handlePlay} disabled={isPlaying} className="bg-green-600 px-6 py-2 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed mt-6">
           ▶ Play
         </button>
-
-        <button
-          onClick={handlePause}
-          className="px-6 py-2 bg-yellow-500 rounded hover:bg-yellow-600"
-        >
+        <button onClick={handlePause} disabled={!isPlaying} className="bg-yellow-500 px-6 py-2 rounded hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed mt-6">
           ⏸ Pause
         </button>
-
-        <button
-          onClick={handleReplay}
-          className="px-6 py-2 bg-red-600 rounded hover:bg-red-700"
-        >
+        <button onClick={handleReplay} className="bg-red-600 px-6 py-2 rounded hover:bg-red-700 mt-6">
           🔁 Replay
         </button>
       </div>
 
       {/* Visualization */}
-      <div className="flex justify-center items-center gap-4 bg-gray-800 p-8 rounded max-w-6xl mx-auto flex-wrap">
+      <div className="flex justify-center items-end gap-2 bg-gray-800 p-8 rounded max-w-6xl mx-auto" style={{ minHeight: "400px" }}>
         {array.map((value, index) => {
           let bgColor = "bg-blue-500";
+          let scale = "scale-100";
+          let shadow = "";
 
           // Pivot
           if (index === pivotIndex) {
             bgColor = "bg-purple-500";
+            scale = "scale-110";
+            shadow = "shadow-2xl shadow-purple-500/50";
           }
 
           // Comparing / swapping
           if (comparing.includes(index)) {
             bgColor = swapped ? "bg-red-500" : "bg-yellow-400";
+            scale = "scale-110";
+            shadow = "shadow-2xl shadow-yellow-400/50";
           }
+
+          const heightPercentage = (value / Math.max(...array)) * 100;
 
           return (
             <div
               key={index}
               className={`
-                w-16 h-16 flex items-center justify-center
-                text-xl font-bold text-black rounded
+                w-16 flex flex-col items-center justify-end
                 transition-all duration-500 ease-in-out
-                ${bgColor}
+                ${scale} ${shadow}
               `}
+              style={{ height: "350px" }}
             >
-              {value}
+              <div className="text-sm font-bold text-white mb-1">{value}</div>
+              <div
+                className={`
+                  w-full rounded-t-lg
+                  transition-all duration-500 ease-in-out
+                  ${bgColor}
+                `}
+                style={{ height: `${heightPercentage}%` }}
+              />
             </div>
           );
         })}

@@ -27,6 +27,7 @@ const HeapSortPage = () => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [explanation, setExplanation] = useState("");
+  const [error, setError] = useState("");
 
   const timerRef = useRef(null);
 
@@ -51,6 +52,11 @@ const HeapSortPage = () => {
         .map(Number)
         .filter((n) => !isNaN(n));
 
+      if (parsed.length === 0) {
+        setError("Invalid input! Please enter comma-separated numbers (e.g., 5,3,8,4,2)");
+        return;
+      }
+      setError("");
       setArray(parsed);
       setCurrentStepIndex(0);
       setExplanation("Building a max heap from the input array.");
@@ -76,6 +82,7 @@ const HeapSortPage = () => {
     setArray([]);
     setCurrentStepIndex(0);
     setExplanation("");
+    setError("");
   };
 
   /* 🧠 Explanation generator */
@@ -138,23 +145,30 @@ const HeapSortPage = () => {
         </p>
       </div>
 
-      {/* Input */}
-      <div className="flex justify-center mb-4">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          disabled={isPlaying}
-          className="px-4 py-2 rounded bg-gray-800 border border-gray-600 w-64"
-        />
-      </div>
-
       {/* Controls */}
-      <ControlButtons
-        onPlay={handlePlay}
-        onPause={handlePause}
-        onReplay={handleReplay}
-        disabled={isPlaying}
-      />
+      <div className="flex justify-center gap-4 mb-6 flex-wrap items-start">
+        <div className="flex flex-col gap-2">
+          <label className="text-sm text-gray-400">Demo: 5,3,8,4,2 or 64,34,25,12,22,11,90</label>
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            disabled={isPlaying}
+            placeholder="e.g., 5,3,8,4,2"
+            className="px-4 py-2 rounded bg-gray-800 border border-gray-600 w-96"
+          />
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+        </div>
+        
+        <button onClick={handlePlay} disabled={isPlaying} className="bg-green-600 px-6 py-2 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed mt-6">
+          ▶ Play
+        </button>
+        <button onClick={handlePause} disabled={!isPlaying} className="bg-yellow-500 px-6 py-2 rounded hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed mt-6">
+          ⏸ Pause
+        </button>
+        <button onClick={handleReplay} className="bg-red-600 px-6 py-2 rounded hover:bg-red-700 mt-6">
+          🔁 Replay
+        </button>
+      </div>
 
       {/* Explanation */}
       <div className="max-w-4xl mx-auto bg-gray-800 p-4 rounded mb-6 text-center">
@@ -202,16 +216,23 @@ const HeapSortPage = () => {
         {array.map((value, index) => {
           const { x, y } = getPosition(index);
           let bg = "bg-blue-500";
+          let scale = "scale-100";
+          let shadow = "";
 
-          if (index >= heapRange) bg = "bg-green-500";
+          if (index >= heapRange) {
+            bg = "bg-green-500";
+            scale = "scale-95";
+          }
           if (comparing.includes(index)) {
             bg = swapped ? "bg-red-500" : "bg-yellow-400";
+            scale = "scale-125";
+            shadow = "shadow-2xl shadow-yellow-400/80";
           }
 
           return (
             <div
               key={index}
-              className={`absolute w-12 h-12 rounded-full flex items-center justify-center font-bold text-black transition-all duration-500 ${bg}`}
+              className={`absolute w-12 h-12 rounded-full flex items-center justify-center font-bold text-black transition-all duration-500 ${bg} ${scale} ${shadow}`}
               style={{ left: x - NODE_SIZE / 2, top: y }}
             >
               {value}

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 
-const BubbleSortPage = () => {
-  const [input, setInput] = useState("5,3,8,4,2");
+const LinearSearchPage = () => {
+  const [input, setInput] = useState("12,45,23,67,89,34,56,78,90,11");
+  const [target, setTarget] = useState("56");
   const [array, setArray] = useState([]);
   const [steps, setSteps] = useState([]);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -11,53 +12,50 @@ const BubbleSortPage = () => {
 
   const timerRef = useRef(null);
 
-  // 🔹 Fetch steps
-  const fetchBubbleSortSteps = async (arr) => {
-    const res = await fetch("http://localhost:3000/sortingalgo/bubblesort", {
+  const fetchLinearSearchSteps = async (arr, num) => {
+    const res = await fetch("http://localhost:3000/searchingalgo/linearsearch", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ arr: JSON.stringify(arr) }),
+      body: JSON.stringify({ arr: JSON.stringify(arr), num: parseInt(num) }),
     });
 
     const data = await res.json();
     return data.arr;
   };
 
-  // ▶ Play
   const handlePlay = async () => {
     if (isPlaying) return;
 
     if (steps.length === 0) {
-      // Validate input
-      const parsedArray = input
-        .split(",")
-        .map((n) => Number(n.trim()))
-        .filter((n) => !isNaN(n));
+      const parsedArray = input.split(",").map(n => Number(n.trim())).filter(n => !isNaN(n));
+      const targetNum = Number(target.trim());
 
       if (parsedArray.length === 0) {
-        setError("Invalid input! Please enter comma-separated numbers (e.g., 5,3,8,4,2)");
+        setError("Invalid array! Please enter comma-separated numbers");
         return;
       }
-
+      if (isNaN(targetNum)) {
+        setError("Invalid target! Please enter a valid number");
+        return;
+      }
       setError("");
+
       setArray(parsedArray);
       setCurrentStepIndex(0);
-      setExplanation("Starting Bubble Sort...");
+      setExplanation("Starting Linear Search...");
 
-      const backendSteps = await fetchBubbleSortSteps(parsedArray);
+      const backendSteps = await fetchLinearSearchSteps(parsedArray, target);
       setSteps(backendSteps);
     }
 
     setIsPlaying(true);
   };
 
-  // ⏸ Pause
   const handlePause = () => {
     setIsPlaying(false);
     clearTimeout(timerRef.current);
   };
 
-  // 🔁 Replay
   const handleReplay = () => {
     clearTimeout(timerRef.current);
     setIsPlaying(false);
@@ -68,129 +66,115 @@ const BubbleSortPage = () => {
     setError("");
   };
 
-  // 🎞 Animation engine
   useEffect(() => {
     if (!isPlaying || currentStepIndex >= steps.length) return;
 
     timerRef.current = setTimeout(() => {
       const step = steps[currentStepIndex];
       setArray(step.arr);
-
-      // 🔹 Generate explanation
-      setExplanation(generateExplanation(step, currentStepIndex));
-
+      setExplanation(generateExplanation(step));
       setCurrentStepIndex((prev) => prev + 1);
-    }, 2000);
+    }, 1000);
 
     return () => clearTimeout(timerRef.current);
   }, [isPlaying, currentStepIndex, steps]);
 
   const currentStep = steps[currentStepIndex - 1] || {};
-  const { comparing = [], swapped = false } = currentStep;
+  const { index = -1, found = false } = currentStep;
 
-  // 🔹 Explanation generator
-  const generateExplanation = (step, index) => {
-    if (!step.comparing || step.comparing.length === 0) {
-      return "Bubble Sort completed. The array is now sorted.";
+  const generateExplanation = (step) => {
+    if (step.found) {
+      return `Found ${target} at index ${step.index}!`;
     }
 
-    const [i, j] = step.comparing;
-    const a = step.arr;
-
-    if (step.swapped) {
-      return `Swapped ${a[j]} and ${a[i]} because ${a[j]} was smaller than ${a[i]}.`;
-    }
-
-    return `Comparing ${a[i]} and ${a[j]}. No swap needed since they are already in correct order.`;
+    return `Checking index ${step.index}: ${step.arr[step.index]} ≠ ${target}`;
   };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
-      {/* Title */}
       <h1 className="text-3xl font-bold text-center mb-6">
-        Bubble Sort Visualization
+        Linear Search Visualization
       </h1>
 
-      {/* Info */}
       <div className="max-w-4xl mx-auto bg-gray-800 p-6 rounded mb-6">
-        <h2 className="text-xl font-semibold mb-2">About Bubble Sort</h2>
+        <h2 className="text-xl font-semibold mb-2">About Linear Search</h2>
         <p className="text-gray-300 text-sm">
-          Bubble Sort repeatedly compares adjacent elements and swaps them if
-          they are in the wrong order.
+          Linear Search sequentially checks each element in the array until the target value is found or the end is reached.
         </p>
         <p className="text-gray-400 text-sm mt-2">
-          ⏱ O(n²) Time | 🧠 O(1) Space
+          ⏱ O(n) Time | 🧠 O(1) Space
         </p>
       </div>
 
-      {/* Controls */}
       <div className="flex justify-center gap-4 mb-6 flex-wrap items-start">
         <div className="flex flex-col gap-2">
-          <label className="text-sm text-gray-400">Demo: 5,3,8,4,2 or 64,34,25,12,22,11,90</label>
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            disabled={isPlaying}
-            placeholder="e.g., 5,3,8,4,2"
-            className="px-4 py-2 rounded bg-gray-800 border border-gray-600 w-96"
-          />
+          <label className="text-sm text-gray-400">Demo Array: 12,45,23,67,89,34,56,78,90,11 | Target: 56</label>
+          <div className="flex gap-2">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              disabled={isPlaying}
+              placeholder="Array: 1,3,5,7,9"
+              className="px-4 py-2 rounded bg-gray-800 border border-gray-600 w-64"
+            />
+            <input
+              value={target}
+              onChange={(e) => setTarget(e.target.value)}
+              disabled={isPlaying}
+              placeholder="Target: 7"
+              className="px-4 py-2 rounded bg-gray-800 border border-gray-600 w-32"
+            />
+          </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
         </div>
-
+        
         <button onClick={handlePlay} disabled={isPlaying} className="bg-green-600 px-6 py-2 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed mt-6">
           ▶ Play
         </button>
-
         <button onClick={handlePause} disabled={!isPlaying} className="bg-yellow-500 px-6 py-2 rounded hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed mt-6">
           ⏸ Pause
         </button>
-
         <button onClick={handleReplay} className="bg-red-600 px-6 py-2 rounded hover:bg-red-700 mt-6">
           🔁 Replay
         </button>
       </div>
 
-      {/* 🔹 Explanation Box */}
       <div className="max-w-4xl mx-auto bg-gray-800 p-4 rounded mb-6 text-center">
         <p className="text-lg text-blue-300 font-medium">
           {explanation || "Click Play to start the visualization"}
         </p>
       </div>
 
-      {/* Visualization */}
-      <div className="flex justify-center items-end gap-2 bg-gray-800 p-8 rounded max-w-5xl mx-auto" style={{ minHeight: "400px" }}>
-        {array.map((value, index) => {
+      <div className="flex justify-center items-center gap-4 bg-gray-800 p-8 rounded max-w-5xl mx-auto">
+        {array.map((value, idx) => {
           let bgColor = "bg-blue-500";
           let scale = "scale-100";
           let shadow = "";
 
-          if (comparing.includes(index)) {
-            bgColor = swapped ? "bg-red-500" : "bg-yellow-400";
-            scale = "scale-110";
-            shadow = "shadow-2xl shadow-yellow-400/50";
+          if (idx === index && found) {
+            bgColor = "bg-green-500";
+            scale = "scale-125";
+            shadow = "shadow-2xl shadow-green-500/80";
+          } else if (idx === index) {
+            bgColor = "bg-yellow-400";
+            scale = "scale-125";
+            shadow = "shadow-2xl shadow-yellow-400/80";
+          } else if (idx < index) {
+            bgColor = "bg-gray-600";
+            scale = "scale-95";
           }
-
-          const heightPercentage = (value / Math.max(...array)) * 100;
 
           return (
             <div
-              key={index}
+              key={idx}
               className={`
-                w-16 flex flex-col items-center justify-end
-                transition-all duration-500 ease-in-out
-                ${scale} ${shadow}
+                w-16 h-16 flex items-center justify-center
+                text-xl font-bold text-black rounded
+                transition-all duration-500
+                ${bgColor} ${scale} ${shadow}
               `}
-              style={{ height: "350px" }}
             >
-              <div className="text-sm font-bold text-white mb-1">{value}</div>
-              <div
-                className={`
-                  w-full rounded-t-lg
-                  transition-all duration-500 ease-in-out
-                  ${bgColor}
-                `}
-                style={{ height: `${heightPercentage}%` }}
-              />
+              {value}
             </div>
           );
         })}
@@ -199,4 +183,4 @@ const BubbleSortPage = () => {
   );
 };
 
-export default BubbleSortPage;
+export default LinearSearchPage;
