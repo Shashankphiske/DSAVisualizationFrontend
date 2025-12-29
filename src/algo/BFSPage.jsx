@@ -106,7 +106,6 @@ const BFSPage = () => {
       setVisited((prev) => new Set(prev).add(step.num));
       setCurrentStepIndex((i) => i + 1);
     }, 1800);
-
     return () => clearTimeout(timerRef.current);
   }, [isPlaying, currentStepIndex, steps]);
 
