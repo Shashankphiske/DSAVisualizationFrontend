@@ -86,7 +86,7 @@ const QuickSortPage = () => {
   } = currentStep;
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
+    <div className="min-h-screen bg-gray-900 text-white p-8 pt-25">
       {/* Title */}
       <h1 className="text-3xl font-bold text-center mb-6">
         Quick Sort Visualization

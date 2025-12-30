@@ -146,10 +146,29 @@ const AStarPage = () => {
     : "Click Play to start";
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
-      <h1 className="text-3xl font-bold text-center mb-6">
-        A* Algorithm Visualization
-      </h1>
+    <div className="min-h-screen bg-gray-900 text-white p-8 pt-25">
+<h1 className="text-3xl font-bold text-center mb-2">
+  A* (A-Star) Algorithm (Heuristic Search)
+</h1>
+
+<p className="text-center text-gray-400 max-w-3xl mx-auto mb-4">
+  A* (A-Star) is a graph search algorithm used to find the shortest path between
+  two nodes by combining the actual cost from the start and a heuristic estimate
+  to the goal. It efficiently guides the search toward the target, making it
+  faster than Dijkstra’s algorithm in many practical cases.
+</p>
+
+<div className="max-w-3xl mx-auto bg-gray-800 rounded-lg p-4 mb-8">
+  <p className="text-gray-300 mb-2">
+    <span className="font-semibold text-white">Time Complexity:</span>
+    O((V + E) log V) in the worst case, depending on the heuristic used.
+  </p>
+  <p className="text-gray-300">
+    <span className="font-semibold text-white">Space Complexity:</span> O(V),
+    for storing open and closed sets, cost values, and parent pointers.
+  </p>
+</div>
+
 
       {/* ================= INPUT ================= */}
       <div className="max-w-4xl mx-auto bg-gray-800 p-6 rounded mb-6">

@@ -84,7 +84,7 @@ const QueueDequeuePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
+    <div className="min-h-screen bg-gray-900 text-white p-8 pt-25">
       <h1 className="text-3xl font-bold text-center mb-6">
         Queue Dequeue Visualization
       </h1>

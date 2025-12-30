@@ -53,6 +53,10 @@ import QueueAlgo from "./pages/QueueAlgo";
 import LinkedListAlgo from "./pages/LinkedListAlgo";
 import ShortestPathAlgo from "./pages/ShortestPathAlgo";
 
+import DynamicAlgorithms from "./algo/DynamicAlgorithms";
+import FibonacciPage from "./algo/FibonacciPage";
+import CoinChangePage from "./algo/CoinChangePage";
+
 const App = () => {
   return (
     <Router>
@@ -111,6 +115,11 @@ const App = () => {
         {/* Shortest Path Algorithms */}
         <Route path="/dijkstra" element={<DijkstraPage />} />
         <Route path="/astar" element={<AStarPage />} />
+
+        <Route path="/dynamicalgorithms" element={<DynamicAlgorithms/>} />
+        <Route path="/dp/fibonacci" element={<FibonacciPage />} />
+        <Route path="/dp/coinchange" element={<CoinChangePage />} />
+
       </Routes>
     </Router>
   );

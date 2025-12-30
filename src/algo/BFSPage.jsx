@@ -129,10 +129,28 @@ const BFSPage = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
-      <h1 className="text-3xl font-bold text-center mb-6">
-        Breadth First Search (BFS)
-      </h1>
+    <div className="min-h-screen bg-gray-900 text-white p-8 pt-25">
+<h1 className="text-3xl font-bold text-center mb-2">
+  Breadth-First Search (BFS)
+</h1>
+
+<p className="text-center text-gray-400 max-w-3xl mx-auto mb-4">
+  Breadth-First Search is a graph traversal algorithm that explores nodes level
+  by level, starting from a given source node. It visits all immediate neighbors
+  before moving deeper, using a queue to manage the traversal order.
+</p>
+
+<div className="max-w-3xl mx-auto bg-gray-800 rounded-lg p-4 mb-8">
+  <p className="text-gray-300 mb-2">
+    <span className="font-semibold text-white">Time Complexity:</span> O(V + E),
+    where V is the number of vertices and E is the number of edges.
+  </p>
+  <p className="text-gray-300">
+    <span className="font-semibold text-white">Space Complexity:</span> O(V),
+    due to the queue and visited set used during traversal.
+  </p>
+</div>
+
 
       <div className="max-w-4xl mx-auto bg-gray-800 p-6 rounded mb-6">
         <h2 className="text-xl font-semibold mb-4">

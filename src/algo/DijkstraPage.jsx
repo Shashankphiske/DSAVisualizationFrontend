@@ -143,18 +143,29 @@ const DijkstraPage = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
-      <h1 className="text-3xl font-bold text-center mb-6">
-        Dijkstra’s Algorithm
-      </h1>
+    <div className="min-h-screen bg-gray-900 text-white p-8 pt-25">
+<h1 className="text-3xl font-bold text-center mb-2">
+  Dijkstra’s Algorithm (Shortest Path)
+</h1>
 
-      {/* ================= INFO ================= */}
-      <div className="max-w-4xl mx-auto bg-gray-800 p-6 rounded mb-6">
-        <p className="text-gray-300 text-sm">
-          Dijkstra’s algorithm finds the shortest path from a source node to all
-          other nodes in a weighted graph with non-negative weights.
-        </p>
-      </div>
+<p className="text-center text-gray-400 max-w-3xl mx-auto mb-4">
+  Dijkstra’s Algorithm is a graph algorithm used to find the shortest path from a
+  source node to all other nodes in a weighted graph with non-negative edge
+  weights. It works by repeatedly selecting the unvisited node with the smallest
+  known distance and relaxing its edges.
+</p>
+
+<div className="max-w-3xl mx-auto bg-gray-800 rounded-lg p-4 mb-8">
+  <p className="text-gray-300 mb-2">
+    <span className="font-semibold text-white">Time Complexity:</span>
+    O((V + E) log V) when implemented using a priority queue.
+  </p>
+  <p className="text-gray-300">
+    <span className="font-semibold text-white">Space Complexity:</span> O(V),
+    for storing distances, visited nodes, and the priority queue.
+  </p>
+</div>
+
 
       {/* ================= INPUT ================= */}
       <div className="max-w-4xl mx-auto bg-gray-800 p-6 rounded mb-6">
