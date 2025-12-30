@@ -51,13 +51,13 @@ const BubbleSortPage = () => {
     setIsPlaying(true);
   };
 
-  // ⏸ Pause
+  //  Pause
   const handlePause = () => {
     setIsPlaying(false);
     clearTimeout(timerRef.current);
   };
 
-  // 🔁 Replay
+  //  Replay
   const handleReplay = () => {
     clearTimeout(timerRef.current);
     setIsPlaying(false);
@@ -68,7 +68,7 @@ const BubbleSortPage = () => {
     setError("");
   };
 
-  // 🎞 Animation engine
+  //  Animation engine
   useEffect(() => {
     if (!isPlaying || currentStepIndex >= steps.length) return;
 
@@ -76,7 +76,7 @@ const BubbleSortPage = () => {
       const step = steps[currentStepIndex];
       setArray(step.arr);
 
-      // 🔹 Generate explanation
+      //  Generate explanation
       setExplanation(generateExplanation(step, currentStepIndex));
 
       setCurrentStepIndex((prev) => prev + 1);
@@ -88,7 +88,7 @@ const BubbleSortPage = () => {
   const currentStep = steps[currentStepIndex - 1] || {};
   const { comparing = [], swapped = false } = currentStep;
 
-  // 🔹 Explanation generator
+  // Explanation generator
   const generateExplanation = (step, index) => {
     if (!step.comparing || step.comparing.length === 0) {
       return "Bubble Sort completed. The array is now sorted.";
