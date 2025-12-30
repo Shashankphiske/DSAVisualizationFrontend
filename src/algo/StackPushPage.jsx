@@ -12,7 +12,7 @@ const StackPushPage = () => {
   const timerRef = useRef(null);
 
   const fetchPushSteps = async (stack, toPush) => {
-    const res = await fetch("http://localhost:3000/stackalgo/push", {
+    const res = await fetch("http://localhost:3000/stackalgo/stackpush", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ stack, push: toPush }),
