@@ -139,10 +139,29 @@ const PostorderPage = () => {
 
   /* ================= UI ================= */
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
-      <h1 className="text-3xl font-bold text-center mb-6">
-        Postorder Traversal Visualization
+    <div className="min-h-screen bg-gray-900 text-white p-8 pt-25">
+      <h1 className="text-3xl font-bold text-center mb-2">
+        Preorder Traversal (Binary Tree)
       </h1>
+
+      <p className="text-center text-gray-400 max-w-3xl mx-auto mb-4">
+        Preorder Traversal is a depth-first traversal technique where nodes are visited
+        in the order <span className="text-white">Root → Left → Right</span>.
+        This traversal is commonly used to create a copy of the tree or to generate
+        prefix expressions.
+      </p>
+
+      <div className="max-w-3xl mx-auto bg-gray-800 rounded-lg p-4 mb-8">
+        <p className="text-gray-300 mb-2">
+          <span className="font-semibold text-white">Time Complexity:</span> O(n)
+        </p>
+        <p className="text-gray-300">
+          <span className="font-semibold text-white">Space Complexity:</span> O(h),
+          where h is the height of the tree (O(log n) for balanced trees, O(n) in the
+          worst case).
+        </p>
+      </div>
+
 
       {/* INPUT */}
       <div className="max-w-4xl mx-auto bg-gray-800 p-6 rounded mb-6">

@@ -65,7 +65,16 @@ const Home = () => {
       description: "Dijkstra's and A* pathfinding algorithms.",
       gradient: "from-emerald-500 to-green-500",
       delay: "700"
+    },
+    {
+      to: "/dynamicalgorithms",
+      icon: "🧩",
+      title: "Dynamic Programming",
+      description: "LCS, Knapsack, Fibonacci, Grid DP, and more.",
+      gradient: "from-fuchsia-500 to-purple-600",
+      delay: "800"
     }
+
   ];
 
   return (
